@@ -12,13 +12,12 @@ function wp_cache_setup() {
 	global $wpdb;
 	$sql = "
 	  CREATE TABLE {$wpdb->prefix}cache (
-			`group` varchar(200) NOT NULL,
-			`key` varchar(200) NOT NULL,
+			collection varchar(200) NOT NULL,
+			name varchar(200) NOT NULL,
 			value longtext NOT NULL default '',
 			expires_gmt datetime,
 			created_gmt datetime DEFAULT CURRENT_TIMESTAMP,
-			hits bigint(20) unsigned NOT NULL,
-			PRIMARY KEY  (`group`(31), `key`(160))
+			PRIMARY KEY  (collection(31), name(160))
 		)
 		{$wpdb->get_charset_collate()}";
 	require_once ABSPATH . 'wp-includes/l10n.php';
@@ -227,7 +226,7 @@ class WP_Object_Cache {
 			$key = $this->blog_prefix . $key;
 		}
 		if (!isset($this->cache[$group][$key])) {
-			$result = $wpdb->get_var($wpdb->prepare("SELECT value FROM {$wpdb->prefix}cache WHERE `group` = %s AND `key` = %s", $group, $key));
+			$result = $wpdb->get_var($wpdb->prepare("SELECT value FROM {$wpdb->prefix}cache WHERE collection = %s AND name = %s", $group, $key));
 			if (class_exists('WP_CLI', FALSE)) var_dump(__FUNCTION__ . ":$group:$key:" . gettype($result));
 			if (isset($result)) {
 				$this->cache[$group][$key]['value'] = unserialize($result);
@@ -347,7 +346,7 @@ class WP_Object_Cache {
 		if ( $this->multisite && ! isset($this->global_groups[ $group ])) {
 			$key = $this->blog_prefix . $key;
 		}
-		$wpdb->query($wpdb->prepare("INSERT INTO {$wpdb->prefix}cache (`group`, `key`, value) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE value = VALUES(value)", $group, $key, serialize($data)));
+		$wpdb->query($wpdb->prepare("INSERT INTO {$wpdb->prefix}cache (collection, name, value) VALUES (%s, %s, %s) ON DUPLICATE KEY UPDATE value = VALUES(value)", $group, $key, serialize($data)));
 		if (class_exists('WP_CLI', FALSE)) var_dump(__FUNCTION__ . ":$group:$key:" . gettype($data));
 
 		$this->cache[$group][$key]['value'] = $data;
@@ -464,7 +463,7 @@ class WP_Object_Cache {
 			return false;
 		}
 
-		$wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}cache WHERE `group` = %s AND `key` = %s", $group, $key));
+		$wpdb->query($wpdb->prepare("DELETE FROM {$wpdb->prefix}cache WHERE collection = %s AND name = %s", $group, $key));
 		if (class_exists('WP_CLI', FALSE)) var_dump(__FUNCTION__ . ":$group:$key");
 		unset( $this->cache[ $group ][ $key ] );
 		return true;
